@@ -1,34 +1,22 @@
-const config = require('../config.js');
-module.exports = message => {
+const ayarlar = require("../ayarlar.json");
+module.exports = async message => {
   let client = message.client;
+  let prefix =
+    (await require("quick.db").fetch(`prefix_${message.guild.id}`)) ||
+    ayarlar.prefix;
   if (message.author.bot) return;
-  if (!message.content.startsWith(config.prefix)) return;
-  let command = message.content.split(' ')[0].slice(config.prefix.length);
-  let params = message.content.split(' ').slice(1);
+  if (!message.content.startsWith(prefix)) return;
+  let command = message.content.split(" ")[0].slice(prefix.length);
+  let params = message.content.split(" ").slice(1);
+  let perms = client.elevation(message);
   let cmd;
   if (client.commands.has(command)) {
     cmd = client.commands.get(command);
   } else if (client.aliases.has(command)) {
     cmd = client.commands.get(client.aliases.get(command));
-  };
+  }
   if (cmd) {
-    if(!message.guild) {
-      if(cmd.config.guildOnly === true) {
-        return;
-      };
-    };
-    if (cmd.config.permLevel) {
-      if(cmd.config.permLevel === "BOT_OWNER") {
-   if(!config.geliştiriciler.includes(message.author.id)) {
-        message.channel.send(`Bu komutu kullanabilmek için \`${cmd.config.permLevel}\` yetkisine sahip olmalısın.`).then(msg => msg.delete({timeout: 3000}));
-        return;
-   }
-      }
-        if(!message.member.hasPermission(cmd.config.permLevel)) {
-      message.channel.send(`Bu komutu kullanabilmek için \`${cmd.config.permLevel}\` yetkisine sahip olmalısın.`).then(msg => msg.delete({timeout: 3000}));
-     return;
-      };
-    };
-    cmd.run(client, message, params);
-};
+    if (perms < cmd.conf.permLevel) return;
+    cmd.run(client, message, params, perms);
+  }
 };
